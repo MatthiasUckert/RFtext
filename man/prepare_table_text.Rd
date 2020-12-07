@@ -6,7 +6,7 @@
 \usage{
 prepare_table_text(
   .table_text,
-  .use_udpipe,
+  .use_udpipe = FALSE,
   .lan = "english-ewt",
   .dir_mod = getwd(),
   .tagger = c("default", "none"),

@@ -6,6 +6,7 @@ table_string1 <- tibble::tribble(
   "to upper", NA_character_, NA_character_, "aaa", base::toupper,
   "to title", NA_character_, NA_character_, "hello there", stringr::str_to_title,
   "to sentence", NA_character_, NA_character_, "hello there", stringr::str_to_sentence,
+  "trim", NA_character_, NA_character_, "  hello  ", base::trimws
 )
 
 table_string1 <- table_string1 %>%

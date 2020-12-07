@@ -37,7 +37,7 @@ prepare_table_terms <- function(.table_terms) {
 #' @export
 #'
 #' @examples
-prepare_table_text <- function(.table_text, .use_udpipe,
+prepare_table_text <- function(.table_text, .use_udpipe = FALSE,
                                .lan = "english-ewt", .dir_mod = getwd(),
                                .tagger = c("default", "none"),
                                .parser = c("none", "default"),
