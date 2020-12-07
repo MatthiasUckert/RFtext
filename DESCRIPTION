@@ -1,0 +1,29 @@
+Package: RFtext
+Title: Collection of Functions for Textual Analysis
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Matthias",
+           family = "Uckert",
+           role = c("aut", "cre"),
+           email = "M.Uckert@Outlook.com",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: What the package does (one paragraph).
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Imports: 
+    magrittr,
+    dplyr,
+    furrr,
+    future,
+    progressr,
+    purrr,
+    tibble,
+    tidyr,
+    tidytext,
+    stringi,
+    qdapTools
+Depends: 
+    R (>= 2.10)
