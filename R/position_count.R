@@ -233,7 +233,7 @@ helper_position_count <- function(.row_terms, .table_text, .col_split_id = NULL)
   i_tab_pos <- i_tab_pos %>%
     dplyr::filter(i_lgl_check) %>%
     dplyr::left_join(
-      y  = dplyr::mutate(i_tab_text, merging_id = dplyr::row_number()),
+      y  = dplyr::mutate(.table_text, merging_id = dplyr::row_number()),
       by = c("start" = "merging_id")) %>%
     dplyr::select(doc_id, {{ .col_split_id }}, dplyr::everything())
 
