@@ -32,6 +32,7 @@ gsub_fixed <- function(str, pattern, replacement) {
 string_operations <- function(.string, .table_string) {
   s <- .string
   t <- .table_string
+  s <- gsub("\\s+", " ", s)
   for (i in 1:nrow(t)) {
     if (is.na(t$search[i])) {
       s <- t$call[[i]](s)
@@ -39,6 +40,7 @@ string_operations <- function(.string, .table_string) {
       s <- t$call[[i]](s, t$search[i], t$replace[i])
     }
   }
+  s <- gsub("\\s+", " ", s)
   return(s)
 }
 
