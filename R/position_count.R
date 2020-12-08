@@ -35,20 +35,23 @@ find_seq_in_seq <- function(.seq_find, .seq_base) {
 #' @param .table_text
 #' A Dataframe with at least 2 columns (doc_id: A Document Identifier, text: Text) \cr
 #' Text column mus be tokenized (one token per row)
-#' @param .col_split_id
-#' Additionally an ID column that shows breaks in the Text Dataframe (e.g. an sentence ID)
 #' @param .workers
 #' Number of workers (default = 1)
 #' @param .pre_check
 #' Number of ngram pre-check
+#' @param ...
+#' columns to be passed to the function:\cr
+#' Any included column is treated as a splitting value.
 #'
 #' @return
 #' A Dataframe
 #' @export
-#'
+#' @importFrom rlang .data
 #' @examples
-position_count <- function(.table_terms, .table_text, .col_split_id = NULL, .workers = 1, .pre_check = 3) {
+position_count <- function(.table_terms, .table_text, ..., .workers = 1, .pre_check = 3) {
   helper_validate_tables(.table_terms, .table_text)
+
+  i_tab_text <- dplyr::select(.table_text, .data$doc_id, ..., .data$text)
 
   i_lst_terms <- split(.table_terms, .table_terms[["tid"]])
 
@@ -56,7 +59,6 @@ position_count <- function(.table_terms, .table_text, .col_split_id = NULL, .wor
     i_chr_tid <- helper_pre_check(
       .table_terms  = .table_terms,
       .table_text   = .table_text,
-      .col_split_id = {{ .col_split_id }},
       .pre_check    = .pre_check
     )
     i_lst_terms <- i_lst_terms[names(i_lst_terms) %in% i_chr_tid]
@@ -67,20 +69,21 @@ position_count <- function(.table_terms, .table_text, .col_split_id = NULL, .wor
   future::plan("multiprocess", workers = .workers)
   i_tab_pos <- furrr::future_map_dfr(
     .x = i_lst_terms,
-    .f = ~ {p(); helper_position_count(.x, .table_text, {{ .col_split_id }})},
+    .f = ~ {p(); helper_position_count(.x, i_tab_text)},
     .options = furrr::furrr_options(seed = TRUE)
-  ) %>% dplyr::arrange(dplyr::desc(ngram)) %>%
+  ) %>% dplyr::arrange(dplyr::desc(.data$ngram)) %>%
     dplyr::mutate(id = dplyr::row_number())
   future::plan("default")
 
   i_tab_dup <- i_tab_pos %>%
-    dplyr::mutate(idx = purrr::map2(start, stop, ~.x:.y)) %>%
-    tidyr::unnest(idx) %>%
-    dplyr::mutate(dup = duplicated(idx)) %>%
-    dplyr::group_by(id) %>%
-    dplyr::summarise(dup = any(dup), .groups = "drop")
+    dplyr::mutate(idx = purrr::map2(.data$start, .data$stop, ~.x:.y)) %>%
+    tidyr::unnest(.data$idx) %>%
+    dplyr::mutate(dup = duplicated(.data$idx)) %>%
+    dplyr::group_by(.data$id) %>%
+    dplyr::summarise(dup = any(.data$dup), .groups = "drop")
 
-  dplyr::left_join(i_tab_pos, i_tab_dup, by = "id") %>% dplyr::select(-id)
+  dplyr::left_join(i_tab_pos, i_tab_dup, by = "id") %>%
+    dplyr::select(-.data$id)
 
 }
 
@@ -95,7 +98,7 @@ position_count <- function(.table_terms, .table_text, .col_split_id = NULL, .wor
 #' Text column mus be tokenized (one token per row)
 #'
 #' @return Checks if Input is correct
-#'
+#' @importFrom rlang .data
 #' @examples
 helper_validate_tables <- function(.table_terms, .table_text) {
 
@@ -154,34 +157,31 @@ helper_validate_tables <- function(.table_terms, .table_text) {
 #' @param .table_text
 #' A Dataframe with at least 2 columns (doc_id: A Document Identifier, text: Text) \cr
 #' Text column mus be tokenized (one token per row)
-#' @param .col_split_id
-#' Additionally an ID column that shows breaks in the Text Dataframe (e.g. an sentence ID)
 #' @param .pre_check
 #' Number of ngram pre-check
 #'
 #' @return A charcter vector with valid tids
-#'
+#' @importFrom rlang .data
 #' @examples
-helper_pre_check <- function(.table_terms, .table_text, .col_split_id = NULL, .pre_check = 3) {
+helper_pre_check <- function(.table_terms, .table_text, .pre_check = 3) {
 
   i_check_text <- .table_text %>%
-    dplyr::group_by(doc_id, {{ .col_split_id }}) %>%
-    dplyr::summarise(text = paste(text, collapse = " "), .groups = "drop") %>%
-    tidytext::unnest_tokens(text, text, token = "skip_ngrams", n = .pre_check)
+    dplyr::group_by(dplyr::across(!dplyr::matches("text"))) %>%
+    dplyr::summarise(text = paste(.data$text, collapse = " "), .groups = "drop") %>%
+    tidytext::unnest_tokens(.data$text, .data$text, token = "skip_ngrams", n = .pre_check)
 
   i_check_terms <- .table_terms %>%
-    dplyr::mutate(term = purrr::map_chr(term, ~ paste(.x, collapse = " "))) %>%
-    tidytext::unnest_tokens(term, term, token = "skip_ngrams", n = .pre_check)
+    dplyr::mutate(term = purrr::map_chr(.data$term, ~ paste(.x, collapse = " "))) %>%
+    tidytext::unnest_tokens(.data$term, .data$term, token = "skip_ngrams", n = .pre_check)
 
   i_check_terms %>%
-    dplyr::mutate(check = term %in% i_check_text$text) %>%
-    dplyr::group_by(tid) %>%
-    dplyr::summarise(check = all(check), .groups = "drop") %>%
-    dplyr::filter(check) %>%
-    dplyr::pull(tid) %>%
+    dplyr::mutate(check = .data$term %in% i_check_text$text) %>%
+    dplyr::group_by(.data$tid) %>%
+    dplyr::summarise(check = all(.data$check), .groups = "drop") %>%
+    dplyr::filter(.data$check) %>%
+    dplyr::pull(.data$tid) %>%
     as.character()
 }
-
 
 #' Helper Function: Single Term Position Count
 #'
@@ -191,43 +191,38 @@ helper_pre_check <- function(.table_terms, .table_text, .col_split_id = NULL, .p
 #' @param .table_text
 #' A Dataframe with at least 2 columns (doc_id: A Document Identifier, text: Text) \cr
 #' Text column mus be tokenized (one token per row)
-#' @param .col_split_id
-#' Additionally an ID column that shows breaks in the Text Dataframe (e.g. an sentence ID)
-#'
 #' @return A dataframe
-#'
+#' @importFrom rlang .data
 #' @examples
-helper_position_count <- function(.row_terms, .table_text, .col_split_id = NULL) {
+helper_position_count <- function(.row_terms, .table_text) {
   i_chr_term <- unlist(.row_terms[["term"]])
+  i_tab_text <- .table_text
 
   if (length(i_chr_term) == 1) {
     i_tab_pos <- tibble::tibble(
-      start = which(.table_text[["text"]] == i_chr_term)
+      start = which(i_tab_text[["text"]] == i_chr_term)
     )
   } else {
     i_tab_pos <- tibble::tibble(
-      start = find_seq_in_seq(i_chr_term, .table_text[["text"]])
+      start = find_seq_in_seq(i_chr_term, i_tab_text[["text"]])
     )
   }
 
   i_tab_pos <- i_tab_pos %>%
     dplyr::mutate(
       tid = .row_terms[["tid"]],
-      stop = start + length(i_chr_term) - 1L,
+      stop = .data$start + length(i_chr_term) - 1L,
       ngram = as.integer(length(i_chr_term)),
       term = paste(i_chr_term, collapse = " ")
     ) %>%
-    dplyr::select(tid, ngram, term, start, stop)
+    dplyr::select(.data$tid, .data$ngram, .data$term, .data$start, .data$stop)
 
-  if (!is.null(.col_split_id)) {
-    i_check_id <- paste0(
-      dplyr::pull(.table_text, doc_id),
-      dplyr::pull(.table_text, {{ .col_split_id }})
-    )
-  } else {
-    i_check_id <- dplyr::pull(.table_text, doc_id)
-  }
 
+
+  i_check_id <- i_tab_text %>%
+    dplyr::select(-.data$text) %>%
+    tidyr::unite(check_id, dplyr::everything(), sep = "-") %>%
+    dplyr::pull(.data$check_id)
 
   i_lgl_check <- i_check_id[i_tab_pos[["start"]]] == i_check_id[i_tab_pos[["stop"]]]
   i_tab_pos <- i_tab_pos %>%
@@ -235,7 +230,7 @@ helper_position_count <- function(.row_terms, .table_text, .col_split_id = NULL)
     dplyr::left_join(
       y  = dplyr::mutate(.table_text, merging_id = dplyr::row_number()),
       by = c("start" = "merging_id")) %>%
-    dplyr::select(doc_id, {{ .col_split_id }}, dplyr::everything())
+    dplyr::select(-.data$text)
 
   return(i_tab_pos)
 }

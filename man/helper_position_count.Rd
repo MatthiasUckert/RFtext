@@ -4,7 +4,7 @@
 \alias{helper_position_count}
 \title{Helper Function: Single Term Position Count}
 \usage{
-helper_position_count(.row_terms, .table_text, .col_split_id = NULL)
+helper_position_count(.row_terms, .table_text)
 }
 \arguments{
 \item{.row_terms}{A Dataframe Row with at least 2 columns (tid: Term ID, term: Term) \cr
@@ -12,8 +12,6 @@ Term column must be a list column}
 
 \item{.table_text}{A Dataframe with at least 2 columns (doc_id: A Document Identifier, text: Text) \cr
 Text column mus be tokenized (one token per row)}
-
-\item{.col_split_id}{Additionally an ID column that shows breaks in the Text Dataframe (e.g. an sentence ID)}
 }
 \value{
 A dataframe

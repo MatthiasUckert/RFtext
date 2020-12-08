@@ -4,7 +4,7 @@
 #' A Dataframe with at least 2 columns (tid: Term ID, term: Term) \cr
 #' @return A Dataframe with a term list column
 #' @export
-#'
+#' @importFrom rlang .data
 #' @examples
 prepare_table_terms <- function(.table_terms) {
   # Check if Inputs are Dataframes ------------------------------------------
@@ -17,7 +17,7 @@ prepare_table_terms <- function(.table_terms) {
     stop("'.table_terms' MUST contain the columns 'tid' (Term ID) and 'term'", call. = FALSE)
   }
 
-  dplyr::mutate(.table_terms, term = stringi::stri_split_fixed(term, " "))
+  dplyr::mutate(.table_terms, term = stringi::stri_split_fixed(.data$term, " "))
 }
 
 
@@ -35,7 +35,7 @@ prepare_table_terms <- function(.table_terms) {
 #' @param .return_raw return the UDPipe raw output
 #' @return A tokenized Dataframe
 #' @export
-#'
+#' @importFrom rlang .data
 #' @examples
 prepare_table_text <- function(.table_text, .use_udpipe = FALSE,
                                .lan = "english-ewt", .dir_mod = getwd(),
@@ -54,19 +54,24 @@ prepare_table_text <- function(.table_text, .use_udpipe = FALSE,
 
   if (!.use_udpipe) {
     tab_token <- .table_text %>%
-      tidytext::unnest_tokens(text, text, token = stringi::stri_split_regex, pattern = "\n\n", to_lower = FALSE) %>%
-      dplyr::group_by(doc_id) %>%
+      tidytext::unnest_tokens(
+        .data$text, .data$text,
+        token = stringi::stri_split_regex, pattern = "\n\n", to_lower = FALSE
+        ) %>%
+      dplyr::group_by(.data$doc_id) %>%
       dplyr::mutate(par_id = dplyr::row_number()) %>%
       dplyr::ungroup() %>%
-      tidytext::unnest_tokens(text, text, token = "sentences", to_lower = FALSE) %>%
-      dplyr::group_by(doc_id) %>%
+      tidytext::unnest_tokens(
+        .data$text, .data$text, token = "sentences", to_lower = FALSE
+        ) %>%
+      dplyr::group_by(.data$doc_id) %>%
       dplyr::mutate(sen_id = dplyr::row_number()) %>%
       dplyr::ungroup() %>%
-      tidytext::unnest_tokens(token, text) %>%
-      dplyr::group_by(doc_id) %>%
+      tidytext::unnest_tokens(.data$oken, .data$text) %>%
+      dplyr::group_by(.data$doc_id) %>%
       dplyr::mutate(tok_id = dplyr::row_number()) %>%
       dplyr::ungroup() %>%
-      dplyr::select(doc_id, par_id, sen_id, tok_id, token)
+      dplyr::select(.data$doc_id, .data$par_id, .data$sen_id, .data$tok_id, .data$token)
   } else {
     .parser <- match.arg(.parser)
     .tagger <- match.arg(.tagger)
@@ -79,10 +84,10 @@ prepare_table_text <- function(.table_text, .use_udpipe = FALSE,
 
     if (!.return_raw) {
       tab_token <- tab_token %>%
-        dplyr::filter(!upos %in% c("PART", "PUNCT"))
-      dplyr::select(doc_id,
-                    par_id = paragraph_id, sen_id = sentence_id,
-                    tok_id = term_id, token, lemma
+        dplyr::filter(!.data$upos %in% c("PART", "PUNCT"))
+      dplyr::select(.data$doc_id,
+                    par_id = .data$paragraph_id, sen_id = .data$sentence_id,
+                    tok_id = .data$term_id, .data$token, .data$lemma
       )
     }
   }

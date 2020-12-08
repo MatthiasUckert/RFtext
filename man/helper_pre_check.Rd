@@ -4,12 +4,7 @@
 \alias{helper_pre_check}
 \title{Helper Function: Checks if Ngrams in Term list appear in text}
 \usage{
-helper_pre_check(
-  .table_terms,
-  .table_text,
-  .col_split_id = NULL,
-  .pre_check = 3
-)
+helper_pre_check(.table_terms, .table_text, .pre_check = 3)
 }
 \arguments{
 \item{.table_terms}{A Dataframe with at least 2 columns (tid: Term ID, term: Term) \cr
@@ -17,8 +12,6 @@ Term column must be a list column}
 
 \item{.table_text}{A Dataframe with at least 2 columns (doc_id: A Document Identifier, text: Text) \cr
 Text column mus be tokenized (one token per row)}
-
-\item{.col_split_id}{Additionally an ID column that shows breaks in the Text Dataframe (e.g. an sentence ID)}
 
 \item{.pre_check}{Number of ngram pre-check}
 }
