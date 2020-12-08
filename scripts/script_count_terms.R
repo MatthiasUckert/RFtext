@@ -15,6 +15,8 @@ tab_text <- tibble::tibble(
   text = "property plant and equipment are asset and not intangible asset but asset they are tangible and fixed asset"
 )
 
+test <- prepare_table_text(tab_text, .use_udpipe = TRUE)
+test <- prepare_table_terms(tab_term_list)
 .table_terms <- tribble(
   ~ tid, ~ term,
   1, c("A", "B", "C"),

@@ -55,19 +55,19 @@ prepare_table_text <- function(.table_text, .use_udpipe = FALSE,
   if (!.use_udpipe) {
     tab_token <- .table_text %>%
       tidytext::unnest_tokens(
-        .data$text, .data$text,
+        text, .data$text,
         token = stringi::stri_split_regex, pattern = "\n\n", to_lower = FALSE
         ) %>%
       dplyr::group_by(.data$doc_id) %>%
       dplyr::mutate(par_id = dplyr::row_number()) %>%
       dplyr::ungroup() %>%
       tidytext::unnest_tokens(
-        .data$text, .data$text, token = "sentences", to_lower = FALSE
+        text, .data$text, token = "sentences", to_lower = FALSE
         ) %>%
       dplyr::group_by(.data$doc_id) %>%
       dplyr::mutate(sen_id = dplyr::row_number()) %>%
       dplyr::ungroup() %>%
-      tidytext::unnest_tokens(.data$oken, .data$text) %>%
+      tidytext::unnest_tokens(token, .data$text) %>%
       dplyr::group_by(.data$doc_id) %>%
       dplyr::mutate(tok_id = dplyr::row_number()) %>%
       dplyr::ungroup() %>%
@@ -84,8 +84,8 @@ prepare_table_text <- function(.table_text, .use_udpipe = FALSE,
 
     if (!.return_raw) {
       tab_token <- tab_token %>%
-        dplyr::filter(!.data$upos %in% c("PART", "PUNCT"))
-      dplyr::select(.data$doc_id,
+        dplyr::filter(!.data$upos %in% c("PART", "PUNCT")) %>%
+        dplyr::select(.data$doc_id,
                     par_id = .data$paragraph_id, sen_id = .data$sentence_id,
                     tok_id = .data$term_id, .data$token, .data$lemma
       )
