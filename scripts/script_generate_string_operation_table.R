@@ -86,8 +86,12 @@ table_string2 <- tibble::tribble(
   "standardize semicolon", ";", "; ", "Test;A", gsub_fixed,
 
   "standardize currencies", "(\\p{Sc})(\\s+)?([\\d,\\.]+)", "$1$3", "€  200,000, $  200.000", stringi::stri_replace_all_regex,
+  "standardize letter number (1)", "([a-zA-Z]+)(\\d+)", "$1 $2", "a10", stringi::stri_replace_all_regex,
+  "standardize letter number (2)", "(\\d+)([a-zA-Z]+)", "$1 $2", "10a", stringi::stri_replace_all_regex,
 
-  "remove 's", "'s", "", "Auditor's", gsub_fixed,
+  "remove 's", "'s", " ", "Auditor's", gsub_fixed,
+  "remove s'", "s'", "s", "Auditors'", gsub_fixed,
+  "remove single quotes", "'", " ", "'wacc'", gsub_fixed,
 
   "remove punctuation (all)", "[[:punct:]]", " ", "(Test, A: B=C)", gsub_regex,
   "remove punctuation (beginning)", "^[[:punct:]]", " ", "(Test, A: B=C)", gsub_regex,
@@ -110,5 +114,3 @@ table_string2 <- table_string2 %>%
 
 table_string <- dplyr::bind_rows(table_string1, table_string2)
 usethis::use_data(table_string, overwrite = TRUE)
-
-

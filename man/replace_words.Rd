@@ -4,7 +4,7 @@
 \alias{replace_words}
 \title{Replace Words in Text/Tokens}
 \usage{
-replace_words(.string, .table_replace, .tokenized = FALSE)
+replace_words(.string, .table_replace, .tokenized = FALSE, .regex = FALSE)
 }
 \arguments{
 \item{.string}{character vector; strings to search in}
@@ -14,10 +14,25 @@ column 1: pattern word \cr
 column 2: replace word \cr}
 
 \item{.tokenized}{If input is already tokenized a more efficient algorithm is used. Gives a considerable speed advantage in large datasets}
+
+\item{.regex}{If TRUE word boundaries are added, if FALSE blanks are added}
 }
 \value{
 A character vector
 }
 \description{
 Replace Words in Text/Tokens
+}
+\examples{
+tab_replace <- tibble::tribble(
+~ from, ~ to,
+"A", "A1",
+"B", "B1"
+)
+
+replace_words("A B", tab_replace)
+replace_words("A B,", tab_replace, .regex = TRUE)
+replace_words("A B", tab_replace, .tokenized = TRUE)
+replace_words(c("A", "B"), tab_replace, .tokenized = TRUE)
+
 }

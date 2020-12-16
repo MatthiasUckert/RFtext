@@ -2,6 +2,7 @@
 
 export("%>%")
 export(find_seq_in_seq)
+export(pdf_info)
 export(position_count)
 export(prepare_table_terms)
 export(prepare_table_text)

@@ -26,3 +26,17 @@ A Dataframe
 \description{
 Get Position of Terms in Text
 }
+\examples{
+table_terms <- tibble::tibble(
+  tid = 1:2,
+  term = c("a b", "b")
+) \%>\% prepare_table_terms()
+
+table_text <- tibble::tibble(
+  doc_id = 1:2,
+  text = rep("A A A B A C B A C A B A B AB B A", 2)
+) \%>\% prepare_table_text() \%>\%
+  dplyr::rename(text = token)
+
+position_count(table_terms, table_text)
+}

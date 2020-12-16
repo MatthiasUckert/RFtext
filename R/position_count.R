@@ -48,20 +48,51 @@ find_seq_in_seq <- function(.seq_find, .seq_base) {
 #' @export
 #' @importFrom rlang .data
 #' @examples
+#' table_terms <- tibble::tibble(
+#'   tid = 1:2,
+#'   term = c("a b", "b")
+#' ) %>% prepare_table_terms()
+#'
+#' table_text <- tibble::tibble(
+#'   doc_id = 1:2,
+#'   text = rep("A A A B A C B A C A B A B AB B A", 2)
+#' ) %>% prepare_table_text() %>%
+#'   dplyr::rename(text = token)
+#'
+#' position_count(table_terms, table_text)
+
 position_count <- function(.table_terms, .table_text, ..., .workers = 1, .pre_check = 3) {
   helper_validate_tables(.table_terms, .table_text)
 
-  i_tab_text <- dplyr::select(.table_text, .data$doc_id, ..., .data$text)
+  i_tab_text <- dplyr::select(.table_text, .data$doc_id, .data$text, ...)
+
 
   i_lst_terms <- split(.table_terms, .table_terms[["tid"]])
 
   if (.pre_check > 0) {
     i_chr_tid <- helper_pre_check(
       .table_terms  = .table_terms,
-      .table_text   = .table_text,
+      .table_text   = i_tab_text,
       .pre_check    = .pre_check
     )
     i_lst_terms <- i_lst_terms[names(i_lst_terms) %in% i_chr_tid]
+  }
+
+  if (length(i_chr_tid) == 0) {
+    tab_out <- dplyr::bind_cols(
+      dplyr::slice(i_tab_text, 0),
+      dplyr::slice(.table_terms, 0)
+    ) %>%
+      dplyr::mutate(
+        term = character(),
+        start = integer(),
+        stop = integer(),
+        dup = logical(),
+        ngram = integer()
+      ) %>%
+      dplyr::select(doc_id, ..., ngram, tid, start, stop, dup, term)
+
+    return(tab_out)
   }
 
 
@@ -82,8 +113,22 @@ position_count <- function(.table_terms, .table_text, ..., .workers = 1, .pre_ch
     dplyr::group_by(.data$id) %>%
     dplyr::summarise(dup = any(.data$dup), .groups = "drop")
 
+
+  int_tok_id <- i_tab_text %>%
+    dplyr::group_by(doc_id) %>%
+    dplyr::mutate(id = dplyr::row_number()) %>%
+    dplyr::ungroup() %>%
+    dplyr::pull(id)
+
+
+
   dplyr::left_join(i_tab_pos, i_tab_dup, by = "id") %>%
-    dplyr::select(-.data$id)
+    dplyr::select(-.data$id) %>%
+    dplyr::mutate(
+      dplyr::across(c(start, stop), ~ qdapTools::lookup(
+        terms = ., seq_along(int_tok_id), int_tok_id
+      ))
+    ) %>% dplyr::select(doc_id, ..., ngram, tid, start, stop, dup, term)
 
 }
 
@@ -228,7 +273,7 @@ helper_position_count <- function(.row_terms, .table_text) {
   i_tab_pos <- i_tab_pos %>%
     dplyr::filter(i_lgl_check) %>%
     dplyr::left_join(
-      y  = dplyr::mutate(.table_text, merging_id = dplyr::row_number()),
+      y  = dplyr::mutate(i_tab_text, merging_id = dplyr::row_number()),
       by = c("start" = "merging_id")) %>%
     dplyr::select(-.data$text)
 

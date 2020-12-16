@@ -68,6 +68,9 @@ prepare_table_text <- function(.table_text, .use_udpipe = FALSE,
       dplyr::mutate(sen_id = dplyr::row_number()) %>%
       dplyr::ungroup() %>%
       tidytext::unnest_tokens(token, .data$text) %>%
+      dplyr::mutate(token = stringi::stri_replace_all_regex(token, "[[:punct:]]", "")) %>%
+      dplyr::filter(!token == "") %>%
+      dplyr::filter(!is.na(token)) %>%
       dplyr::group_by(.data$doc_id) %>%
       dplyr::mutate(tok_id = dplyr::row_number()) %>%
       dplyr::ungroup() %>%
