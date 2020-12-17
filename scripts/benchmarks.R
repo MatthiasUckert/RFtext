@@ -32,6 +32,8 @@ tab_text100 <- dplyr::bind_rows(lst_text100)
 lst_text1000 <- purrr::map(1:1000, ~ .table_text)
 tab_text1000 <- dplyr::bind_rows(lst_text1000)
 
+
+
 tab_bench <- bench::mark(
   t10a = position_count(terms, tab_text10, sen_id),
   t10m = map_dfr(lst_text10, ~ position_count(terms, .x, sen_id)),
