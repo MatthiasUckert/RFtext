@@ -1,3 +1,21 @@
+#' List Files as a Named Character
+#'
+#' @param .dirs Paths to the directories
+#' @param reg RegEx to find files (defaults to '*' all files)
+#' @param rec Should the directories be searched recursively?
+#'
+#' @return A named character
+#' @export
+lfc <- function(.dirs, reg = "*", rec = FALSE) {
+  fils <- unlist(purrr::map(.dirs, ~ list.files(.x, reg, F, T, rec)))
+  names(fils) <- stringi::stri_replace_all_fixed(
+    str = basename(fils),
+    pattern = paste0(".", tools::file_ext(fils)),
+    replacement = ""
+  )
+  return(fils)
+}
+
 #' Wrapper around pdftools::pdf_info
 #'
 #' @param .path_in full path to the pdf
@@ -50,7 +68,7 @@ pdf_rotate <- function(.path_in, .path_out, .angle, .pages) {
     stop("angle must be length 1 or must have the same length as pages", call. = FALSE)
   }
 
-  if (length(angle) == 1) {
+  if (length(.angle) == 1) {
     angle <- ifelse(.angle < 0, as.character(.angle), paste0("+", .angle))
     pages <- paste(.pages, collapse = ",")
     rotation <- glue::glue("--rotate={angle}:{pages}")
@@ -110,4 +128,80 @@ pdf_convert <- function(.path_in, .dir_out, .format = "png", .pages = NULL,
     verbose = .verbose
   )
 
+}
+
+
+#' Convert PDF to txt with xpdftools
+#'
+#' @param .path_in full path to the pdf
+#' @param .path_out full path to the new txt file
+#'
+#' @return A text file
+#' @export
+#'
+#' @examples
+pdf_to_txt <- function(.path_in = NULL, .path_out = NULL) {
+  cmd_tool <- system.file(
+    "cmdtools/xpdf-tools-win-4.02/bin64/pdftotext.exe",
+    package = "RFtext"
+  )
+
+  if (!dir.exists(dirname(.path_out))) {
+    dir.create(dirname(.path_out), recursive = TRUE)
+  }
+
+  path_in <- paste0("\"", .path_in, "\"")
+  path_out <- paste0("\"", .path_out, "\"")
+
+  try(
+    expr = system(paste(cmd_tool, path_in, path_out), wait = FALSE),
+    silent = TRUE
+  )
+
+}
+
+
+#' Batch Convert PDF to Text
+#'
+#' @param .dir_in full path to the directory with the pdfs
+#' @param .dir_out full path to the directory to store txt files
+#' @param .paths_in if .dir_in = NULL, vector with file paths of the pdf
+#' @param .paths_out if .dir_out = NULL, vector with file paths of the pdf
+#' @param .inst max instances of pdftotex.exe to run
+#'
+#' @return text files
+#' @export
+pdf_to_txt_batch <- function(.dir_in = NULL, .dir_out = NULL, .paths_in = NULL,
+                             .paths_out = NULL, .inst = 20) {
+  if (!is.null(.dir_in) & !is.null(.dir_out)) {
+    paths_in <- lfc(.dir_in, "\\.pdf$", rec = TRUE)
+    paths_out <- stringi::stri_replace_first_fixed(
+      str = paths_in,
+      pattern = paste0("/", basename(.dir_in), "/"),
+      replacement = paste0("/", basename(.dir_out), "/")
+    )
+    paths_out <- gsub("\\.pdf$", ".txt", paths_out)
+  } else {
+    paths_in <- .paths_in
+    paths_out <- .paths_out
+  }
+
+  dir_names <- unique(dirname(paths_out))
+  for (i in 1:length(dir_names)) {
+    if (!dir.exists(dir_names[i])) dir.create(dir_names[i], recursive = TRUE)
+  }
+
+  check_inst <- function() {
+    sum(stringi::stri_count_fixed(system("tasklist", intern = T), "PDFTOT"))
+  }
+
+  for (j in 1:length(paths_in)) {
+    pdf_to_txt(paths_in[j], paths_out[j])
+
+    if (j %% .inst == 0) {
+      while (check_inst() > .inst / 4) {
+        Sys.sleep(1)
+      }
+    }
+  }
 }
