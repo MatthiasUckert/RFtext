@@ -205,3 +205,31 @@ pdf_to_txt_batch <- function(.dir_in = NULL, .dir_out = NULL, .paths_in = NULL,
     }
   }
 }
+
+
+#' Decryp PDFs
+#'
+#' @param .path_in full path to the pdf
+#' @param .path_out full path to the new pdf file
+#'
+#' @return A pdf
+#' @export
+pdf_decrypt <- function(.path_in, .path_out) {
+  cmd_tool <- system.file(
+    "cmdtools/qpdf-10.0.4/bin/qpdf.exe",
+    package = "RFtext"
+  )
+
+  if (!dir.exists(dirname(.path_out))) {
+    dir.create(dirname(.path_out), recursive = TRUE)
+  }
+
+  path_in <- paste0("\"", .path_in, "\"")
+  path_out <- paste0("\"", .path_out, "\"")
+
+  .catch <- try(
+    expr = system(paste(cmd_tool, "--decrypt", path_in, path_out), ignore.stderr = TRUE),
+    silent = TRUE
+  )
+
+}
