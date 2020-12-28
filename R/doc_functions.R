@@ -23,9 +23,9 @@ lfc <- function(.dirs, reg = "*", rec = FALSE) {
 #' @return A Dataframe
 #' @export
 pdf_info <- function(.path_in) {
-  ichr_doc_id = gsub(".pdf$", "", basename(.path_in))
+  ichr_doc_id <- gsub(".pdf$", "", basename(.path_in))
 
-  safe_pdf_info  <- purrr::safely(pdftools::pdf_info)
+  safe_pdf_info <- purrr::safely(pdftools::pdf_info)
   lst <- suppressMessages(safe_pdf_info(.path_in))
   res <- purrr::compact(lst$result)
   err <- paste(purrr::compact(lst$error), collapse = "|")
@@ -46,7 +46,6 @@ pdf_info <- function(.path_in) {
       error_msg = err
     )
   }
-
 }
 
 #' Rotate PDF Pages
@@ -72,7 +71,6 @@ pdf_rotate <- function(.path_in, .path_out, .angle, .pages) {
     angle <- ifelse(.angle < 0, as.character(.angle), paste0("+", .angle))
     pages <- paste(.pages, collapse = ",")
     rotation <- glue::glue("--rotate={angle}:{pages}")
-
   } else {
     rotation <- paste(
       purrr::map2_chr(.angle, .pages, ~ glue::glue("--rotate={.x}:{.y}")),
@@ -80,7 +78,6 @@ pdf_rotate <- function(.path_in, .path_out, .angle, .pages) {
     ) %>% as.character()
   }
   system(paste(cmd_tool, rotation, .path_in, .path_out))
-
 }
 
 
@@ -127,7 +124,6 @@ pdf_convert <- function(.path_in, .dir_out, .format = "png", .pages = NULL,
     upw = .upw,
     verbose = .verbose
   )
-
 }
 
 
@@ -155,7 +151,6 @@ pdf_to_txt <- function(.path_in = NULL, .path_out = NULL) {
     expr = system(paste(cmd_tool, path_in, path_out), wait = FALSE),
     silent = TRUE
   )
-
 }
 
 
@@ -204,6 +199,33 @@ pdf_to_txt_batch <- function(.dir_in = NULL, .dir_out = NULL, .paths_in = NULL,
   }
 }
 
+#' Decrypt PDFs
+#'
+#' @param .path_in full path to the pdf
+#' @param .path_out full path to the new pdf file
+#'
+#' @return A pdf
+#' @export
+pdf_decrypt <- function(.path_in, .path_out) {
+  cmd_tool <- system.file(
+    "cmdtools/qpdf-10.0.4/bin/qpdf.exe",
+    package = "RFtext"
+  )
+
+  if (!dir.exists(dirname(.path_out))) {
+    dir.create(dirname(.path_out), recursive = TRUE)
+  }
+
+  path_in <- paste0("\"", .path_in, "\"")
+  path_out <- paste0("\"", .path_out, "\"")
+
+  .catch <- try(
+    expr = system(paste(cmd_tool, "--decrypt", path_in, path_out), ignore.stderr = TRUE),
+    silent = TRUE
+  )
+}
+
+
 #' Wrapper Around docto.exe
 #'
 #' @param .path_in full path to the document
@@ -216,6 +238,7 @@ doc_to_doc <- function(.path_in, .path_out, .format, .excel = FALSE) {
     "cmdtools/docto/docto.exe",
     package = "RFtext"
   )
+
   if (!dir.exists(dirname(.path_out))) {
     dir.create(dirname(.path_out), recursive = TRUE)
   }
@@ -223,20 +246,18 @@ doc_to_doc <- function(.path_in, .path_out, .format, .excel = FALSE) {
   path_in <- paste0("\"", .path_in, "\"")
   path_out <- paste0("\"", .path_out, "\"")
 
+
   if (.excel) {
     try(
       system(paste(cmd_tool, "-XL -f", path_in, "-O", path_out, "-T", .format), wait = FALSE),
       silent = TRUE
     )
-
   } else {
     try(
       system(paste(cmd_tool, "-f", path_in, "-O", path_out, "-T", .format), wait = FALSE),
       silent = TRUE
     )
-
   }
-
 }
 
 #' Convert XLS to XLSX
@@ -296,7 +317,8 @@ xls_to_xlsx <- function(.dir_in = NULL, .dir_out = NULL, .paths_in = NULL,
 #'
 #' @return
 #' @export
-pdf_images <- function(.path_in, .dir_out, .convert = TRUE, .resize = 1000, .remove_dup = FALSE, .save = c(".rds", ".csv", ".fst")) {
+pdf_images <- function(.path_in, .dir_out, .convert = TRUE, .resize = 1000,
+                       .remove_dup = FALSE, .save = c(".rds", ".csv", ".fst")) {
   cmd_tool <- system.file(
     "cmdtools/xpdf-tools-win-4.02/bin64/pdfimages.exe",
     package = "RFtext"
@@ -310,7 +332,9 @@ pdf_images <- function(.path_in, .dir_out, .convert = TRUE, .resize = 1000, .rem
   path_in <- paste0("\"", .path_in, "\"")
   info <- system(paste(cmd_tool, "-j -list", path_in, root_dir), intern = TRUE, wait = TRUE)
 
-  if (length(info) == 0) return(NULL)
+  if (length(info) == 0) {
+    return(NULL)
+  }
 
   info_adj <- info[!startsWith(info, "Syntax Error")]
   info_err <- info[startsWith(info, "Syntax Error")]
@@ -336,8 +360,10 @@ pdf_images <- function(.path_in, .dir_out, .convert = TRUE, .resize = 1000, .rem
       width1 = width0, height1 = height0, ext1 = ext0,
       doc_id = chr_doc_id
     ) %>%
-    dplyr::select(doc_id, img_id, ext0, ext1, width0, height0, width1, height1, hdpi,
-                  vdpi, colorspace, bpc, path, path_new)
+    dplyr::select(
+      doc_id, img_id, ext0, ext1, width0, height0, width1, height1, hdpi,
+      vdpi, colorspace, bpc, path, path_new
+    )
 
   if (.convert) {
     int_convert <- which(info1$ext0 != ".jpg")
@@ -374,36 +400,36 @@ pdf_images <- function(.path_in, .dir_out, .convert = TRUE, .resize = 1000, .rem
     info1 <- dplyr::select(info1, -pix_max, -geom)
   }
 
-info1 <- info1 %>%
-  dplyr::mutate(
-    pix = purrr::map_chr(
-      .x = path,
-      .f = ~ .x %>%
-        magick::image_read() %>%
-        magick::image_resize("25x25") %>%
-        as.raster() %>%
-        paste(., collapse = "")
-    )
-  ) %>%
-  dplyr::group_by(pix) %>%
-  dplyr::mutate(
-    dup = dplyr::n() > 1,
-    dup = dplyr::if_else(dup, dplyr::first(img_id), NA_character_),
-    dup = dplyr::if_else(img_id == dplyr::first(dup), NA_character_, dup)
+  info1 <- info1 %>%
+    dplyr::mutate(
+      pix = purrr::map_chr(
+        .x = path,
+        .f = ~ .x %>%
+          magick::image_read() %>%
+          magick::image_resize("25x25") %>%
+          as.raster() %>%
+          paste(., collapse = "")
+      )
     ) %>%
-  dplyr::ungroup() %>%
-  dplyr::select(-pix) %>%
-  dplyr::relocate(path, .after = dup)
+    dplyr::group_by(pix) %>%
+    dplyr::mutate(
+      dup = dplyr::n() > 1,
+      dup = dplyr::if_else(dup, dplyr::first(img_id), NA_character_),
+      dup = dplyr::if_else(img_id == dplyr::first(dup), NA_character_, dup)
+    ) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(-pix) %>%
+    dplyr::relocate(path, .after = dup)
 
-if (.remove_dup) {
-  fil_rem <- info1 %>%
-    dplyr::filter(!is.na(dup)) %>%
-    dplyr::pull(path)
+  if (.remove_dup) {
+    fil_rem <- info1 %>%
+      dplyr::filter(!is.na(dup)) %>%
+      dplyr::pull(path)
 
-  if(length(fil_rem) > 0) {
-    invisible(file.remove(fil_rem))
+    if (length(fil_rem) > 0) {
+      invisible(file.remove(fil_rem))
+    }
   }
-}
 
 
   path_save <- file.path(.dir_out, chr_doc_id, paste0(chr_doc_id, .save))
