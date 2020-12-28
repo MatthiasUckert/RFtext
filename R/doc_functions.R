@@ -161,11 +161,12 @@ pdf_to_txt <- function(.path_in = NULL, .path_out = NULL) {
 #' @param .paths_in if .dir_in = NULL, vector with file paths of the pdf
 #' @param .paths_out if .dir_out = NULL, vector with file paths of the pdf
 #' @param .inst max instances of pdftotex.exe to run
+#' @param .progress show progress
 #'
 #' @return text files
 #' @export
 pdf_to_txt_batch <- function(.dir_in = NULL, .dir_out = NULL, .paths_in = NULL,
-                             .paths_out = NULL, .inst = 20) {
+                             .paths_out = NULL, .inst = 20, .progress = FALSE) {
   if (!is.null(.dir_in) & !is.null(.dir_out)) {
     paths_in <- lfc(.dir_in, "\\.pdf$", rec = TRUE)
     paths_out <- stringi::stri_replace_first_fixed(
@@ -187,8 +188,12 @@ pdf_to_txt_batch <- function(.dir_in = NULL, .dir_out = NULL, .paths_in = NULL,
   check_inst <- function() {
     sum(stringi::stri_count_fixed(system("tasklist", intern = T), "PDFTOT"))
   }
-
+  pb <- progress::progress_bar$new(
+    format = " converting [:bar] :percent (docs: :current - elapsed: :elapsed - eta: :eta)",
+    total = length(paths_in)
+  )
   for (j in 1:length(paths_in)) {
+    if (.progress) pb$tick()
     pdf_to_txt(paths_in[j], paths_out[j])
 
     if (j %% .inst == 0) {
