@@ -9,7 +9,8 @@ pdf_to_txt_batch(
   .dir_out = NULL,
   .paths_in = NULL,
   .paths_out = NULL,
-  .inst = 20
+  .inst = 20,
+  .progress = FALSE
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ pdf_to_txt_batch(
 \item{.paths_out}{if .dir_out = NULL, vector with file paths of the pdf}
 
 \item{.inst}{max instances of pdftotex.exe to run}
+
+\item{.progress}{show progress}
 }
 \value{
 text files

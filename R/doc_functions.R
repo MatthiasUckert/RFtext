@@ -235,10 +235,29 @@ pdf_decrypt <- function(.path_in, .path_out) {
 #'
 #' @param .path_in full path to the document
 #' @param .path_out full path to the new document
+#' @param .format format of conversion, see RFtext::table_doc_to_formats for available formats
 #'
 #' @return A document
 #' @export
-doc_to_doc <- function(.path_in, .path_out, .format, .excel = FALSE) {
+doc_to_doc <- function(.path_in, .path_out, .format) {
+
+  if (!.format %in% table_doc_to_formats[["format"]]) {
+    stop(
+      "'.format' Argument is incorrect, see RFtext::table_doc_to_formats for available formats",
+      call. = FALSE
+    )
+  }
+
+  file_ext_path <- tools::file_ext(.path_out)
+  file_ext_format <- dplyr::filter(table_doc_to_formats, format == .format)[["file_ext"]]
+
+  if (!file_ext_path == file_ext_format) {
+    stop(
+     glue::glue("wrong file extension of output file, extension should match the specified format ({file_ext_format})"),
+      call. = FALSE
+    )
+  }
+
   cmd_tool <- system.file(
     "cmdtools/docto/docto.exe",
     package = "RFtext"
@@ -251,63 +270,10 @@ doc_to_doc <- function(.path_in, .path_out, .format, .excel = FALSE) {
   path_in <- paste0("\"", .path_in, "\"")
   path_out <- paste0("\"", .path_out, "\"")
 
-
-  if (.excel) {
-    try(
-      system(paste(cmd_tool, "-XL -f", path_in, "-O", path_out, "-T", .format), wait = FALSE),
-      silent = TRUE
-    )
-  } else {
-    try(
-      system(paste(cmd_tool, "-f", path_in, "-O", path_out, "-T", .format), wait = FALSE),
-      silent = TRUE
-    )
-  }
-}
-
-#' Convert XLS to XLSX
-#'
-#' @param .dir_in full path to the directory with the xls
-#' @param .dir_out full path to the directory to store xlsx files
-#' @param .paths_in if .dir_in = NULL, vector with file paths of the xls
-#' @param .paths_out if .dir_out = NULL, vector with file paths of the xlsx
-#' @param .inst max instances of docto.exe to run
-#'
-#' @return xlsx file
-#' @export
-xls_to_xlsx <- function(.dir_in = NULL, .dir_out = NULL, .paths_in = NULL,
-                        .paths_out = NULL, .inst = 20) {
-  if (!is.null(.dir_in) & !is.null(.dir_out)) {
-    paths_in <- lfc(.dir_in, "\\.xls$", rec = TRUE)
-    paths_out <- stringi::stri_replace_first_fixed(
-      str = paths_in,
-      pattern = paste0("/", basename(.dir_in), "/"),
-      replacement = paste0("/", basename(.dir_out), "/")
-    )
-    paths_out <- gsub("\\.xls$", ".xlsx", paths_out)
-  } else {
-    paths_in <- .paths_in
-    paths_out <- .paths_out
-  }
-
-  dir_names <- unique(dirname(paths_out))
-  for (i in 1:length(dir_names)) {
-    if (!dir.exists(dir_names[i])) dir.create(dir_names[i], recursive = TRUE)
-  }
-
-  check_inst <- function() {
-    sum(stringi::stri_count_fixed(system("tasklist", intern = T), "docto"))
-  }
-
-  for (j in 1:length(paths_in)) {
-    doc_to_doc(paths_in[j], paths_out[j], "xlWorkbookDefault", TRUE)
-
-    if (j %% .inst == 0) {
-      while (check_inst() > .inst / 4) {
-        Sys.sleep(1)
-      }
-    }
-  }
+  .excel <- dplyr::filter(table_doc_to_formats, format == .format)[["document_type"]] == "excel"
+  fil <- ifelse(.excel, "-XL -f", "-f")
+  command <- paste(cmd_tool, fil, path_in, "-O", path_out, "-T", .format)
+  try(system(command, wait = FALSE), silent = TRUE)
 }
 
 
@@ -319,18 +285,21 @@ xls_to_xlsx <- function(.dir_in = NULL, .dir_out = NULL, .paths_in = NULL,
 #' @param .resize resize large images (default 1000px for the longer dimension)
 #' @param .remove_dup remove duplicated picture
 #' @param .save output format of the info file
+#' @param .zip zip images?
 #'
 #' @return
 #' @export
 pdf_images <- function(.path_in, .dir_out, .convert = TRUE, .resize = 1000,
-                       .remove_dup = FALSE, .save = c(".rds", ".csv", ".fst")) {
+                       .remove_dup = FALSE, .save = c(".rds", ".csv", ".fst"),
+                       .zip = FALSE
+                       ) {
   cmd_tool <- system.file(
     "cmdtools/xpdf-tools-win-4.02/bin64/pdfimages.exe",
     package = "RFtext"
   )
 
   chr_doc_id <- gsub("\\.pdf$", "", basename(.path_in))
-  dir_img <- file.path(.dir_out, chr_doc_id, "imgs")
+  dir_img <- file.path(.dir_out, chr_doc_id, paste0(chr_doc_id, "_imgs"))
   if (!dir.exists(dir_img)) dir.create(dir_img, recursive = TRUE)
   root_dir <- file.path(dir_img, chr_doc_id)
 
@@ -347,7 +316,7 @@ pdf_images <- function(.path_in, .dir_out, .convert = TRUE, .resize = 1000,
 
 
   if (length(info_err) > 0) {
-    write(info_err, file.path(.dir_out, chr_doc_id, paste0(chr_doc_id, "error.txt")))
+    write(info_err, file.path(.dir_out, chr_doc_id, paste0(chr_doc_id, "_errors.txt")))
   }
 
   info1 <- tibble::tibble(raw = info_adj) %>%
@@ -423,8 +392,7 @@ pdf_images <- function(.path_in, .dir_out, .convert = TRUE, .resize = 1000,
       dup = dplyr::if_else(img_id == dplyr::first(dup), NA_character_, dup)
     ) %>%
     dplyr::ungroup() %>%
-    dplyr::select(-pix) %>%
-    dplyr::relocate(path, .after = dup)
+    dplyr::select(-pix)
 
   if (.remove_dup) {
     fil_rem <- info1 %>%
@@ -436,8 +404,18 @@ pdf_images <- function(.path_in, .dir_out, .convert = TRUE, .resize = 1000,
     }
   }
 
+  if (.zip) {
+    zip::zipr(
+      zipfile = file.path(.dir_out, chr_doc_id, paste0(chr_doc_id, "_imgs.zip")),
+      files = lfc(dir_img)
+    )
+    unlink(dir_img, recursive = TRUE, force = TRUE)
+  }
 
-  path_save <- file.path(.dir_out, chr_doc_id, paste0(chr_doc_id, .save))
+  info1 <- dplyr::select(info1, -path)
+
+
+  path_save <- file.path(.dir_out, chr_doc_id, paste0(chr_doc_id, "_infos", .save))
   if (.save == ".rds") {
     readr::write_rds(info1, path_save)
   } else if (.save == ".csv") {

@@ -4,12 +4,14 @@
 \alias{doc_to_doc}
 \title{Wrapper Around docto.exe}
 \usage{
-doc_to_doc(.path_in, .path_out, .format, .excel = FALSE)
+doc_to_doc(.path_in, .path_out, .format)
 }
 \arguments{
 \item{.path_in}{full path to the document}
 
 \item{.path_out}{full path to the new document}
+
+\item{.format}{format of conversion, see RFtext::table_doc_to_formats for available formats}
 }
 \value{
 A document

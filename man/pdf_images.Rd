@@ -10,7 +10,8 @@ pdf_images(
   .convert = TRUE,
   .resize = 1000,
   .remove_dup = FALSE,
-  .save = c(".rds", ".csv", ".fst")
+  .save = c(".rds", ".csv", ".fst"),
+  .zip = FALSE
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ pdf_images(
 \item{.remove_dup}{remove duplicated picture}
 
 \item{.save}{output format of the info file}
+
+\item{.zip}{zip images?}
 }
 \value{
 

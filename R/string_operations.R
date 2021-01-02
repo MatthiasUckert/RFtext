@@ -54,4 +54,4 @@ string_operations <- function(.string, .table_string) {
 #'   \item{example}{an example of the operation}
 #'   \item{call}{function call}
 #' }
-"table_string"
+"table_string_operations"
