@@ -62,6 +62,8 @@ find_seq_in_seq <- function(.seq_find, .seq_base) {
 #' position_count(table_terms, table_text)
 
 position_count <- function(.table_terms, .table_text, ..., .workers = 1, .pre_check = 3) {
+  doc_id <- ngram <- tid <- start <- dup <- term <- id <- NULL
+
   helper_validate_tables(.table_terms, .table_text)
 
   i_tab_text <- dplyr::select(.table_text, .data$doc_id, .data$text, ...)
@@ -95,16 +97,30 @@ position_count <- function(.table_terms, .table_text, ..., .workers = 1, .pre_ch
     return(tab_out)
   }
 
-
-  p <- progressr::progressor(steps = length(i_lst_terms))
-  future::plan("multiprocess", workers = .workers)
-  i_tab_pos <- furrr::future_map_dfr(
+  i_tab_pos <- purrr::map_dfr(
     .x = i_lst_terms,
-    .f = ~ {p(); helper_position_count(.x, i_tab_text)},
-    .options = furrr::furrr_options(seed = TRUE)
+    .f = ~ helper_position_count(.x, i_tab_text)
   ) %>% dplyr::arrange(dplyr::desc(.data$ngram)) %>%
     dplyr::mutate(id = dplyr::row_number())
-  future::plan("default")
+
+  # p <- progressr::progressor(steps = length(i_lst_terms))
+  # if (.workers > 1) {
+  #   future::plan("multiprocess", workers = .workers)
+  #   i_tab_pos <- furrr::future_map_dfr(
+  #     .x = i_lst_terms,
+  #     .f = ~ {p(); helper_position_count(.x, i_tab_text)},
+  #     .options = furrr::furrr_options(seed = TRUE)
+  #   ) %>% dplyr::arrange(dplyr::desc(.data$ngram)) %>%
+  #     dplyr::mutate(id = dplyr::row_number())
+  #   future::plan("default")
+  # } else {
+  #   i_tab_pos <- map_dfr(
+  #     .x = i_lst_terms,
+  #     .f = ~ {p(); helper_position_count(.x, i_tab_text)}
+  #   ) %>% dplyr::arrange(dplyr::desc(.data$ngram)) %>%
+  #     dplyr::mutate(id = dplyr::row_number())
+  # }
+
 
   i_tab_dup <- i_tab_pos %>%
     dplyr::mutate(idx = purrr::map2(.data$start, .data$stop, ~.x:.y)) %>%

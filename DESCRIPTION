@@ -34,6 +34,8 @@ Imports:
     fst,
     magick,
     progress,
-    readr
+    readr,
+    R.utils,
+    zip
 Depends: 
     R (>= 2.10)

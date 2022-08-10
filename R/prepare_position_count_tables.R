@@ -42,6 +42,7 @@ prepare_table_text <- function(.table_text, .use_udpipe = FALSE,
                                .tagger = c("default", "none"),
                                .parser = c("none", "default"),
                                .return_raw = FALSE) {
+  text <- token <- NULL
   # Check if Inputs are Dataframes ------------------------------------------
   if (!is.data.frame(.table_text)) {
     stop("'.table_terms' MUST be a dataframe", call. = FALSE)
